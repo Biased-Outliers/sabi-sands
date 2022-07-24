@@ -14,9 +14,9 @@
         <button type="submit" class="btn btn-primary">STYLE TRANSFORM</button>
     </form>
 
-    {% if image %}
-        <h2>Results! </h2>
-        <img src = "{{ post.image.url }}" alt="Could not upload style image!" style="width:300px; height:auto">
+    {% if image_url %}
+        <h2>Results!</h2>
+        <img src = "{{ image_url }}" alt="Could not upload style image!" style="width:300px; height:auto">
         <!--<img src="{{ image.first_image.url }}" alt="Could not upload!" style="width:300px; height:auto">-->
         <!--<img src="{{ image.second_image.url }}" alt="Could not upload!" style="width:300px; height:auto">-->
     {% endif %}

@@ -1,19 +1,16 @@
 from django.shortcuts import render
 from django.http import HttpResponse
-import tensorflow as tf
-import IPython.display as display
-import PIL
 from .forms import ImageForm,  ImageFormStyleTransfer
+# from django.conf import settings
+
 import numpy as np
-
 import tensorflow as tf
+import tensorflow_hub as hub
 
-#import matplotlib.pyplot as plt
-#import matplotlib as mpl
-from PIL import Image
-import numpy as np
+import PIL
 
-import tensorflow as tf
+# Style Transfer Model
+hub_model = hub.load("https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2")
 
 # Create your views here.
 def hello(request):
@@ -25,40 +22,17 @@ def hello(request):
         if form.is_valid():
             form.save()
             img_obj = form.instance
-            stylized_image = tensor_to_image(apply_something(img_obj))
-
-            stylized_image_form = ImageFormStyleTransfer(stylized_image)
-            stylized_image_form.save()
-
-
-            return render(request, 'homeApp/index.html', {'image':stylized_image_form.instance})
+            print("Stylizing form...")
+            style_transfer(img_obj)
+            img_obj.delete()
+            return render(request, 'homeApp/index.html', context={'image_url':'./media/styled_image.jpg'})
         
     form = ImageForm()
     return render(request, 'homeApp/index.html', {
         'form':form
     })
 
-def apply_something(img_obj):
-    #print(img_obj.first_image.url)
-
-    PATH = "/Users/tylerpoore/Workspace/Biased Outliers/django/sabisands_clone/sabi-sands"
-
-    img1 = tf.io.read_file(PATH + img_obj.first_image.url)
-    img2 = tf.io.read_file(PATH + img_obj.second_image.url)
-
-    content_image = image_norm(img1)
-    style_image = image_norm(img2)
-
-    import tensorflow_hub as hub
-
-    hub_model = hub.load("https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2")
-    return hub_model(tf.constant(content_image), tf.constant(style_image))[0]
-    #return tensor_to_image(stylized_image)
-
 def image_norm(img, max_dim=512):
-
-    max_dim = max_dim
-    img = tf.image.decode_image(img, channels=3)
 
     shape = tf.cast(tf.shape(img)[:-1], tf.float32)
     long_dim = max(shape)
@@ -68,7 +42,15 @@ def image_norm(img, max_dim=512):
 
     img = tf.image.resize(img, new_shape)
     img = img[tf.newaxis, :]
+    
     return(img)
+
+def read_image_from_db(path):
+    img = tf.io.read_file(path)
+    # print(img)
+    img = tf.image.decode_image(img, channels=3)
+    img = tf.image.convert_image_dtype(img, tf.float32)
+    return img
 
 def tensor_to_image(tensor):
     tensor = tensor*255
@@ -77,3 +59,29 @@ def tensor_to_image(tensor):
         assert tensor.shape[0] == 1
         tensor = tensor[0]
     return PIL.Image.fromarray(tensor)
+
+def save_image(pil_image, img_path):
+    path = "." + img_path
+    print(path)
+    img = PIL.Image.open(path)
+    img.save("styled_image.jpg")
+
+def style_transfer(img_obj):
+    
+    # Reading in the images from Path
+    print(f'Path of images: {"."+img_obj.first_image.url}')
+    content_image = read_image_from_db("." + img_obj.first_image.url)
+    style_image = read_image_from_db("." + img_obj.second_image.url)
+
+    # Normalizing the images
+    content_image = image_norm(content_image)
+    style_image = image_norm(style_image)
+
+    # Creating the image with style transfer
+    tensor_image = hub_model(tf.constant(content_image), tf.constant(style_image))[0]
+
+    # Converting tensor to image
+    pil_image = tensor_to_image(tensor_image)
+
+    # Saving image
+    pil_image.save("./media/styled_image.jpg")
