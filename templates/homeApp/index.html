@@ -1,24 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sabi Sands</title>
-</head>
-<body>
-    <H1>Welcome to Sabi Sands!</H1>
-    <form method='post' enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form }}
-        <button type="submit" class="btn btn-primary">STYLE TRANSFORM</button>
-    </form>
+{% extends "base.html" %}
 
-    {% if image_url %}
-        <h2>Results!</h2>
-        <img src = "{{ image_url }}" alt="Could not upload style image!" style="width:300px; height:auto">
-        <!--<img src="{{ image.first_image.url }}" alt="Could not upload!" style="width:300px; height:auto">-->
-        <!--<img src="{{ image.second_image.url }}" alt="Could not upload!" style="width:300px; height:auto">-->
-    {% endif %}
-</body>
-</html>
+    {% block body_block %}
+
+        <div class="col-md-10">
+            <h1>Welcome to Sabi Sands!</h1>
+            <p>
+                Please upload two images. The first image will be the  content image and the second image will be the style image.
+            </p>
+            <form method='post' enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form }}
+                <button type="submit" class="btn btn-primary">STYLE TRANSFORM</button>
+            </form>
+           
+            {% if image_url %}
+                <h2>Results!</h2>
+                <img src = "{{ image_url }}" alt="Could not upload style image!" style="width:300px; height:auto">
+            {% endif %}
+        </div>    
+
+    {% endblock %}

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+
+    {% block body_block %}
+
+        {% if image_url %}
+            <h2>Results!</h2>
+            <img src = "{{ image_url }}" alt="Could not upload style image!" style="width:300px; height:auto">
+        {% endif %}
+        
+    {% endblock %}

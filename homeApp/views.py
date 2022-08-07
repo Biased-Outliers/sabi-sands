@@ -1,9 +1,11 @@
 # Django Imports
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.core.files import File
 from .forms import ImageForm,  ImageFormStyleTransfer
 
 # Numpy and TF imports
+from io import BytesIO
 import numpy as np
 import tensorflow as tf
 import tensorflow_hub as hub
@@ -86,4 +88,19 @@ def style_transfer(img_obj):
     pil_image = tensor_to_image(tensor_image)
 
     # Saving image
-    pil_image.save("./media/styled_image.jpg")
+    # pil_image.save("./media/styled_image.jpg")
+    save_image(pil_image)
+
+
+def save_image(image):
+    """Makes thumbnails of given size from given image"""
+
+    # im = Image.open(image)
+
+    img_io = BytesIO() # create a BytesIO object
+
+    image.save(img_io, 'JPEG') # save image to BytesIO object
+
+    picture = File(img_io, name='transformed_image') # create a django friendly File object
+
+    return picture
