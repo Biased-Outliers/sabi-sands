@@ -1,12 +1,14 @@
+# Django Imports
 from django.shortcuts import render
 from django.http import HttpResponse
 from .forms import ImageForm,  ImageFormStyleTransfer
-# from django.conf import settings
 
+# Numpy and TF imports
 import numpy as np
 import tensorflow as tf
 import tensorflow_hub as hub
 
+# Image imports
 import PIL
 
 # Style Transfer Model
