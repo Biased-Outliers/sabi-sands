@@ -1,8 +1,20 @@
+# Django Imports
 from django.shortcuts import render
 from django.http import HttpResponse
-import tensorflow as tf
+from django.core.files import File
+from .forms import ImageForm,  ImageFormStyleTransfer
 
-from .forms import ImageForm
+# Numpy and TF imports
+from io import BytesIO
+import numpy as np
+import tensorflow as tf
+import tensorflow_hub as hub
+
+# Image imports
+import PIL
+
+# Style Transfer Model
+hub_model = hub.load("https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2")
 
 # Create your views here.
 def hello(request):
@@ -14,24 +26,17 @@ def hello(request):
         if form.is_valid():
             form.save()
             img_obj = form.instance
-            apply_something(img_obj)
-            return render(request, 'homeApp/index.html', {'image':img_obj})
+            print("Stylizing form...")
+            style_transfer(img_obj)
+            img_obj.delete()
+            return render(request, 'homeApp/index.html', context={'image_url':'./media/styled_image.jpg'})
         
     form = ImageForm()
     return render(request, 'homeApp/index.html', {
         'form':form
     })
 
-def apply_something(img_obj):
-    # print(img_obj.first_image.url)
-    max_dim = 512
-    img = tf.io.read_file(img_obj.first_image.url)
-
-    ## Converts the string into a tensor
-    img = tf.image.decode_image(img, channels=3)
-
-    ## Converts image inputs to float
-    img = tf.image.convert_image_dtype(img, tf.float32)
+def image_norm(img, max_dim=512):
 
     shape = tf.cast(tf.shape(img)[:-1], tf.float32)
     long_dim = max(shape)
@@ -41,4 +46,61 @@ def apply_something(img_obj):
 
     img = tf.image.resize(img, new_shape)
     img = img[tf.newaxis, :]
-    print(img)
+    
+    return(img)
+
+def read_image_from_db(path):
+    img = tf.io.read_file(path)
+    # print(img)
+    img = tf.image.decode_image(img, channels=3)
+    img = tf.image.convert_image_dtype(img, tf.float32)
+    return img
+
+def tensor_to_image(tensor):
+    tensor = tensor*255
+    tensor = np.array(tensor, dtype=np.uint8)
+    if np.ndim(tensor)>3:
+        assert tensor.shape[0] == 1
+        tensor = tensor[0]
+    return PIL.Image.fromarray(tensor)
+
+def save_image(pil_image, img_path):
+    path = "." + img_path
+    print(path)
+    img = PIL.Image.open(path)
+    img.save("styled_image.jpg")
+
+def style_transfer(img_obj):
+    
+    # Reading in the images from Path
+    print(f'Path of images: {"."+img_obj.first_image.url}')
+    content_image = read_image_from_db("." + img_obj.first_image.url)
+    style_image = read_image_from_db("." + img_obj.second_image.url)
+
+    # Normalizing the images
+    content_image = image_norm(content_image)
+    style_image = image_norm(style_image)
+
+    # Creating the image with style transfer
+    tensor_image = hub_model(tf.constant(content_image), tf.constant(style_image))[0]
+
+    # Converting tensor to image
+    pil_image = tensor_to_image(tensor_image)
+
+    # Saving image
+    # pil_image.save("./media/styled_image.jpg")
+    save_image(pil_image)
+
+
+def save_image(image):
+    """Makes thumbnails of given size from given image"""
+
+    # im = Image.open(image)
+
+    img_io = BytesIO() # create a BytesIO object
+
+    image.save(img_io, 'JPEG') # save image to BytesIO object
+
+    picture = File(img_io, name='transformed_image') # create a django friendly File object
+
+    return picture
